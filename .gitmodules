@@ -1,0 +1,7 @@
+[submodule "thrift"]
+	path = thrift
+	url = https://gitlab.com/credits_bc/third_party/thrift.git
+[submodule "csdb_v2"]
+	path = csdb_v2
+	url = https://gitlab.com/credits_bc/temp/csdb_v2.git
+	branch = dev
