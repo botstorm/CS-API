@@ -1,16 +1,11 @@
 #include "APIHandler.h"
 #include "CallStats.h"
 #include "DebugLog.h"
-#include "Validation.h"
+
 #include "csconnector/csconnector.h"
 
 using namespace api;
 
-VALIDATE_BEGIN(Transaction)
-VALIDATE(source).Length<Less>(101);
-VALIDATE(target).Length<Less>(101);
-VALIDATE(currency).Length<Less>(256);
-VALIDATE_END()
 
 namespace csconnector {
 void APIHandler::BalanceGet(BalanceGetResult& _return, const Address& address, const Currency& currency)
@@ -41,41 +36,41 @@ void APIHandler::TransactionsGet(TransactionsGetResult& _return, const Address& 
 }
 
 namespace detail {
-template<class T, class D = validation::Dummy>
-validation::ValidationResult Validate(const T& arg)
-{
-    using namespace validation;
-
-    ValidationResult result = ValidationTraits<T, D>::validate(arg);
-    return result;
-}
-
-template<class T, class D = validation::Dummy>
-std::string GetErrorMessage(const T& arg, const validation::ValidationResult& validationResult)
-{
-    using namespace validation;
-
-    std::string field;
-    std::string error;
-    std::tie(field, error) = ValidationTraits<T, D>::formatErrorMessage(validationResult);
-
-    return ": '" + field + "' - " + error;
-}
+//template<class T, class D = validation::Dummy>
+//validation::ValidationResult Validate(const T& arg)
+//{
+//    using namespace validation;
+//
+//    ValidationResult result = ValidationTraits<T, D>::validate(arg);
+//    return result;
+//}
+//
+//template<class T, class D = validation::Dummy>
+//std::string GetErrorMessage(const T& arg, const validation::ValidationResult& validationResult)
+//{
+//    using namespace validation;
+//
+//    std::string field;
+//    std::string error;
+//    std::tie(field, error) = ValidationTraits<T, D>::formatErrorMessage(validationResult);
+//
+//    return ": '" + field + "' - " + error;
+//}
 }
 
 void APIHandler::TransactionFlow(TransactionFlowResult& _return, const Transaction& transaction)
 {
     // Log("TransactionFlow");
 
-    {
-        auto result = detail::Validate(transaction);
-        if (result != validation::NoError) {
-            std::string errorMessage = detail::GetErrorMessage(transaction, result);
-            SetResponseStatus(_return.status, APIRequestStatusType::FAILURE, errorMessage);
-
-            return;
-        }
-    }
+//    {
+//        auto result = detail::Validate(transaction);
+//        if (result != validation::NoError) {
+//            std::string errorMessage = detail::GetErrorMessage(transaction, result);
+//            SetResponseStatus(_return.status, APIRequestStatusType::FAILURE, errorMessage);
+//
+//            return;
+//        }
+//    }
 
     bool handled = handle<Commands::TransactionFlow>(_return, transaction);
 

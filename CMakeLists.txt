@@ -9,8 +9,12 @@ if (MSVC)
     add_definitions(-DNOMINMAX)
 endif()
 
-include_directories(csdb_v2/include)
-include_directories(cpp-gen)
+
+#include_directories(csdb_v2/include)
+#include_directories(cpp-gen)
+#add_subdirectory(csdb_v2)
+
+
 
 add_definitions(-DUSE_STD_THREAD)
 
@@ -75,7 +79,8 @@ add_custom_command(
   )
 
 
-  add_subdirectory(csdb_v2)
+set(SHA1 ${CMAKE_SOURCE_DIR}/extlibs/sha1)
+include_directories(${SHA1})
 
 # Не рекомендуется использовать file(GLOB, поскольку он вызывается только на стадии
 # генератора Cmake. При добавлении файлов в папку он вызван не будет - и список файлов
@@ -92,9 +97,8 @@ add_library(${PROJECT_NAME}
   src/DebugLog.h
   src/CallStats.cpp
   src/CallStats.h
-  src/Validation.h
-  src/ValidationTests.cpp
-  ${THRIFT_GENERATED_FILES}
+        ${THRIFT_GENERATED_FILES}
+        ${SHA1}/sha1.cpp
   )
 
 target_link_libraries (${PROJECT_NAME} thrift_static csdb)

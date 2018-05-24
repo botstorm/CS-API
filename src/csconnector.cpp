@@ -66,6 +66,7 @@ namespace csconnector
 										 Log("csconnector started on port ", port);
 
 										 server->run();
+
 									 }
 									 catch (...)
 									 {
@@ -93,12 +94,10 @@ namespace csconnector
     {
         DbHandlers::init(m_storage);
         detail::start(config);
-        call_stats::start();
     }
 
     void stop()
     {
-        call_stats::stop();
         detail::stop();
         DbHandlers::deinit();
     }

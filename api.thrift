@@ -35,8 +35,9 @@ struct Transaction
     2: Address source
     3: Address target  // now transaction allows set multiple destinations (since version csdb_v2)
     4: Amount amount
-    5: Currency currency
-    6: SmartContract smartContract
+    5: Amount balance
+    6: Currency currency
+    7: SmartContract smartContract
 }
 
 typedef list<Transaction> Transactions
@@ -186,7 +187,6 @@ service API
     PoolTransactionsGetResult PoolTransactionsGet(1:PoolHash hash, 2:i64 index, 3:i64 offset, 4:i64 limit)
 
     StatsGetResult StatsGet()
-
     NodesInfoGetResult NodesInfoGet()
 
     SmartContractGetResult SmartContractGet(1:Address address)

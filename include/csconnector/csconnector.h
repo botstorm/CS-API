@@ -1,5 +1,4 @@
-#ifndef CONNECTOR_H
-#define CONNECTOR_H
+#pragma once
 
 #include "API.h"
 #include <functional>
@@ -64,11 +63,11 @@ bool registerHandler(typename CommandTraits<C>::Handler handler)
 {
   ScopedLock lock(CommandTraits<C>::getMutex());
 
-  auto& h = CommandTraits<C>::getHandler();
-  if (h != nullptr)
+  auto& m_handler = CommandTraits<C>::getHandler();
+  if (m_handler != nullptr)
     return false;
 
-  h = handler;
+  m_handler = handler;
 
   return true;
 }
@@ -102,6 +101,8 @@ bool handle(Args&&... args)
   return hasHandler;
 }
 
+
+
 DECL_COMMAND(Commands::BalanceGet, api::BalanceGetResult& _return, const api::Address& address, const api::Currency& currency);
 
 DECL_COMMAND(Commands::TransactionGet, api::TransactionGetResult& _return, const api::TransactionId& transactionId);
@@ -132,4 +133,3 @@ DECL_COMMAND(Commands::NodesInfoGet, api::NodesInfoGetResult& _return);
 DECL_COMMAND(Commands::SmartContractGet, api::SmartContractGetResult& _return,const api::Address& address);
 }
 
-#endif // CONNECTOR_H

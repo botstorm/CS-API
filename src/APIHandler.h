@@ -31,7 +31,8 @@ namespace csconnector {
     void StatsGet(api::StatsGetResult& _return) override;
 
     void NodesInfoGet(api::NodesInfoGetResult& _return) override;
-      void SmartContractGet(api::SmartContractGetResult& _return, const api::Address& address) override ;
+	
+    void SmartContractGet(api::SmartContractGetResult& _return, const api::Address& address) override ;
   private:
     bool GetTransaction(const api::TransactionId& transactionId, api::Transaction& transaction);
   };

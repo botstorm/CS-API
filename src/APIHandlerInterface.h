@@ -1,5 +1,4 @@
-#ifndef API_HANDLER_INTERFACE_H
-#define API_HANDLER_INTERFACE_H
+#pragma once
 
 #include "API.h"
 #include "APIHandlerBase.h"
@@ -10,5 +9,3 @@ namespace csconnector
 	{
 	};
 }
-
-#endif // API_HANDLER_INTERFACE_H
