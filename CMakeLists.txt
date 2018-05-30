@@ -79,7 +79,7 @@ add_custom_command(
   )
 
 
-set(SHA1 ${CMAKE_SOURCE_DIR}/extlibs/sha1)
+set(SHA1 ${CMAKE_CURRENT_SOURCE_DIR}/extlibs/sha1)
 include_directories(${SHA1})
 
 # Не рекомендуется использовать file(GLOB, поскольку он вызывается только на стадии

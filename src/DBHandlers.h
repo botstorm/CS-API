@@ -23,7 +23,7 @@ public:
           , const int64_t index, const int64_t offset, const int64_t limit);
 
   static void SmartContractGet(api::SmartContractGetResult& _return,const api::Address& address);
-
+  static void StatsGet(api::StatsGetResult& _return);
 private:
     static api::Transactions convertTransactions(const std::vector<csdb::Transaction>& transactions);
     static api::Transaction  convertTransaction(const csdb::Transaction& transaction);

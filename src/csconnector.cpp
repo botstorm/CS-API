@@ -70,6 +70,7 @@ namespace csconnector
 									 }
 									 catch (...)
 									 {
+										 std::cout << "Oh no! I'm dead :'-(" << std::endl;
 									 }
 								 });
 		}

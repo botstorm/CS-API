@@ -16,9 +16,21 @@
 #include <algorithm>
 #include <cassert>
 
+#include <boost/archive/iterators/binary_from_base64.hpp>
+#include <boost/archive/iterators/base64_from_binary.hpp>
+#include <boost/archive/iterators/transform_width.hpp>
+#include <boost/algorithm/string.hpp>
+
 
 csdb::Storage* DbHandlers::s_storage{nullptr};
 
+std::string decode64(const std::string &val) {
+	using namespace boost::archive::iterators;
+	using It = transform_width<binary_from_base64<std::string::const_iterator>, 8, 6>;
+	return boost::algorithm::trim_right_copy_if(std::string(It(std::begin(val)), It(std::end(val))), [](char c) {
+		return c == '\0';
+	});
+}
 
 void DbHandlers::init(csdb::Storage* m_storage) 
 {
@@ -74,40 +86,61 @@ void DbHandlers::BalanceGet(api::BalanceGetResult& _return, const api::Address& 
 	unsigned int _source = 0;
 	unsigned int res = 0;
 
+
 	csdb::Pool curr = s_storage->pool_load(s_storage->last_hash());
-	  while (curr.is_valid())
-	  {
-		  _target += BalanceTarget(address, curr.hash());
-		  _source = BalanceSource(address, curr.hash());
+	while (curr.is_valid()) {
+		//std::cout << "Looking in block " << curr.hash().to_string() << std::endl;
 
-		  if (BalanceSource(address, curr.hash(), 1))
-		  {
-			  res = _target + _source;
-			  break;
-		  }
-		  curr = s_storage->pool_load(curr.previous_hash());
-	  }
+		_target += BalanceTarget(address, curr.hash());
+		_source = BalanceSource(address, curr.hash());
 
-  _return.amount.integral = res;
-  _return.amount.fraction = 0;
-  
-  
+		//std::cout << "Target = " << _target << ", source = " << _source << std::endl;
+
+		if (BalanceSource(address, curr.hash(), 1)) {
+			res = _target + _source;
+			break;
+		}
+		else
+			res = _target;
+
+		curr = s_storage->pool_load(curr.previous_hash());
+	}
+
+    _return.amount.integral = res;
+    _return.amount.fraction = 0; 
 }
+
 
 void DbHandlers::TransactionGet(api::TransactionGetResult& _return, const api::TransactionId& transactionId) {
   const csdb::TransactionID& tmpTransactionId = csdb::TransactionID::from_string(transactionId);
   const csdb::Transaction&  transaction       = s_storage->transaction(tmpTransactionId);
   _return.found                               = transaction.is_valid();
+  
+  std::cout << " "  << std::endl;
+  std::cout << " " << std::endl;
+  std::cout << " " << std::endl;
+
+  std::cout << "transID:=" << transactionId << std::endl;
+
+  std::cout << "Is Transaction valid?:=" << transaction.is_valid() << std::endl;
+
   if (_return.found) {
       _return.transaction = convertTransaction(transaction);
   }
 }
 
 
-
-
+//??????
 void DbHandlers::TransactionsGet(api::TransactionsGetResult& _return, const api::Address& addressString, const int64_t offset, const int64_t limit) {
-    std::string tmp_buff = sha1_make(addressString);
+    
+	std::cout << " " << std::endl;
+	std::cout << " " << std::endl;
+	std::cout << " " << std::endl;
+
+
+	std::cout << "TransactionsGet" << std::endl;
+
+	std::string tmp_buff = sha1_make(addressString);
     csdb::Address addr = csdb::Address::from_string(tmp_buff);
 
    const auto& transactions = s_storage->transactions(addr, limit);
@@ -115,20 +148,28 @@ void DbHandlers::TransactionsGet(api::TransactionsGetResult& _return, const api:
 }
 
 
-void DbHandlers::PoolListGet(api::PoolListGetResult& _return, const int64_t offset, const int64_t limit) {
 
-    csdb::PoolHash offsetedPoolHash = s_storage->last_hash();
-    for (int64_t i = 0; i < offset; ++i) {
-        offsetedPoolHash   = s_storage->pool_load(offsetedPoolHash).previous_hash();
-    }
 
-    for (int64_t i = 0; i < limit; ++i) {
-      const api::Pool& apiPool = convertPool(offsetedPoolHash);
-      _return.pools.push_back(apiPool);
-    }
+void DbHandlers::PoolListGet(api::PoolListGetResult& _return, const int64_t offset, const int64_t const_limit) {
+	if (s_storage == nullptr) {
+		std::cout << "storage == nullptr" << std::endl;
+		return;
+	}
+	csdb::PoolHash lastPoolHash = s_storage->last_hash();
+	csdb::Pool pool = s_storage->pool_load(lastPoolHash);
+
+	uint64_t sequence = pool.sequence();
+
+	const uint64_t lower = sequence - offset - const_limit;
+	for (uint64_t it = sequence; it > lower; --it) {
+		if (it <= sequence - offset) {
+			const api::Pool& apiPool = convertPool(lastPoolHash);
+			_return.pools.push_back(apiPool);
+		}
+		lastPoolHash = s_storage->pool_load(lastPoolHash).previous_hash();
+	}
 
 }
-
 
 void DbHandlers::PoolInfoGet(api::PoolInfoGetResult& _return, const api::PoolHash& hash, const int64_t index) {
   const csdb::PoolHash poolHash = csdb::PoolHash::from_string(hash);
@@ -141,9 +182,8 @@ void DbHandlers::PoolInfoGet(api::PoolInfoGetResult& _return, const api::PoolHas
 }
 
 
-
-
-void DbHandlers::PoolTransactionsGet(api::PoolTransactionsGetResult& _return, const api::PoolHash& poolHashString, const int64_t index, const int64_t offset, const int64_t limit) {
+void DbHandlers::PoolTransactionsGet(api::PoolTransactionsGetResult& _return, const api::PoolHash& poolHashString
+												, const int64_t index, const int64_t offset, const int64_t limit) {
   const csdb::PoolHash poolHash = csdb::PoolHash::from_string(poolHashString);
   const csdb::Pool&    pool     = s_storage->pool_load(poolHash);
 
@@ -152,40 +192,58 @@ void DbHandlers::PoolTransactionsGet(api::PoolTransactionsGetResult& _return, co
   }
 }
 
+
 api::SmartContract DbHandlers::convertStringToContract(const std::string& data) {
 	api::SmartContract smartContract;
 
-	smartContract.sourceCode = "test_source_code";
-	smartContract.byteCode = "test_byte_code";
-	smartContract.hashState = "test_hash_state";
+	if (data.empty()) return smartContract;
+
+	std::cout << "Smart contract data: " << data << std::endl;
+
+	auto start = data.begin();
+	auto ptr = start;
+
+	std::vector<std::string> results;
+
+	while (ptr != data.end()) {
+		if (*ptr == '*') {
+			results.push_back(decode64(std::string(start, ptr)));
+			start = ptr + 1;
+		}
+		++ptr;
+	}
+
+	results.push_back(decode64(std::string(start, ptr)));
+
+	if (results.size() != 3) std::cout << "[ERROR] Incorrect smart contract format: got " << results.size() << " fields" << std::endl;
+
+	smartContract.sourceCode = results[0];
+	smartContract.byteCode = results[1];
+	smartContract.hashState = results[2];
 
 	return smartContract;
 }
 
-
 void DbHandlers::SmartContractGet(api::SmartContractGetResult& _return, const api::Address& address) {
   assert(s_storage != nullptr);
-
 
     std::string tmp_buff = sha1_make(address);
     csdb::Address addr = csdb::Address::from_string(tmp_buff);
 
-  const csdb::Transaction transaction = s_storage->get_last_by_source(addr);
+   const csdb::Transaction transaction = s_storage->get_last_by_source(addr);
 
   //Test database
-  csdb::UserField smart_contract_field = transaction.user_field(0);
-  std::string smart_contract_data = smart_contract_field.value<std::string>();
+   csdb::UserField smart_contract_field = transaction.user_field(0);
+   std::string smart_contract_data = smart_contract_field.value<std::string>();
 
-  assert(smart_contract_data != "");
-  _return.smartContract = convertStringToContract(smart_contract_data);
-
+   _return.smartContract = convertStringToContract(smart_contract_data);
 }
 
 
 
 api::Transactions DbHandlers::convertTransactions(const std::vector<csdb::Transaction>& transactions) {
   api::Transactions result;
-  //reserve vs resize
+
   result.resize(transactions.size());
   std::transform(transactions.begin(), transactions.end(), result.begin(), convertTransaction);
   return result;
@@ -208,6 +266,7 @@ api::Transaction DbHandlers::convertTransaction(const csdb::Transaction& transac
   return result;
 }
 
+
 api::Amount DbHandlers::convertAmount(const csdb::Amount& amount) {
   api::Amount result;
   result.integral = amount.integral();
@@ -226,7 +285,6 @@ api::Pool DbHandlers::convertPool(const csdb::PoolHash& poolHash) {
     result.poolNumber = pool.sequence();
     assert(result.poolNumber >= 0);
     result.prevHash          = pool.previous_hash().to_string();
-//    result.time              = pool.user_field(); // заменить когда появится дополнительное поле
     result.transactionsCount = pool.transactions_count();
     assert(result.transactionsCount >= 0);
   }
@@ -240,6 +298,7 @@ api::Transactions DbHandlers::extractTransactions(const csdb::Pool& pool, int64_
   if (offset > transactionsCount) {
     return api::Transactions{}; // если запрашиваемые транзакций выходят за пределы пула возвращаем пустой результат
   }
+
   api::Transactions result;
   transactionsCount -= offset; // мы можем отдать все транзакции в пуле за вычетом смещения
 
@@ -250,11 +309,12 @@ api::Transactions DbHandlers::extractTransactions(const csdb::Pool& pool, int64_
     const csdb::Transaction transaction = pool.transaction(index);
     result.push_back(convertTransaction(transaction));
   }
+
   return result;
 }
 
 
-//Utils
+//Utils From Database
 unsigned int DbHandlers::BalanceTarget(api::Address address, csdb::PoolHash pool_hash)
 {
     unsigned int summ = 0;
@@ -266,12 +326,14 @@ unsigned int DbHandlers::BalanceTarget(api::Address address, csdb::PoolHash pool
 
 	if (curr.is_valid())
 	{
-		const auto& t = curr.get_last_by_source(addr);
+		//std::cout << "Looking through with addr " << addr.to_string() << std::endl;
 		for (unsigned int i = 0; i < curr.transactions_count(); i++)
 		{
 			csdb::Transaction tr = curr.transaction(i);
-			if (tr.is_valid())
+			//std::cout << "Looking " << tr.source().to_string() << " -> " << tr.target().to_string() << " : " << tr.amount().to_string() << std::endl;
+			if (tr.is_valid() && tr.target() == addr)
 			{
+				//std::cout << "Yes" << std::endl;
 				summ += tr.amount().integral();
 			}
 		}
@@ -282,29 +344,24 @@ unsigned int DbHandlers::BalanceTarget(api::Address address, csdb::PoolHash pool
 
 unsigned int DbHandlers::BalanceSource(api::Address address, csdb::PoolHash pool_hash)
 {
-    unsigned int summ = 0;
-
     std::string tmp_buff = sha1_make(address);
     csdb::Address addr = csdb::Address::from_string(tmp_buff);
 	csdb::Pool curr = s_storage->pool_load(pool_hash);
 
-
 	if (curr.is_valid())
 	{
-		const auto& t = curr.get_last_by_source(addr);
 		for (unsigned int i = 0; i < curr.transactions_count(); i++)
 		{
 			csdb::Transaction tr = curr.transaction(i);
-			if (tr.is_valid())
+			if (tr.is_valid() && tr.source() == addr)
 			{
-				summ = tr.balance().integral();
+				return tr.balance().integral();
 			}
 		}
 	}
 
-	return summ;
+	return 0;
 }
-
 
 bool DbHandlers::BalanceSource(api::Address address, csdb::PoolHash pool_hash, bool flag)
 {
@@ -317,13 +374,12 @@ bool DbHandlers::BalanceSource(api::Address address, csdb::PoolHash pool_hash, b
 
 	if (curr.is_valid())
 	{
-		const auto& t = curr.get_last_by_source(addr);
+		//const auto& t = curr.get_last_by_source(addr);
 		for (unsigned int i = 0; i < curr.transactions_count(); i++)
 		{
 			csdb::Transaction tr = curr.transaction(i);
-			if (tr.is_valid())
+			if (tr.is_valid() && tr.source() == addr)
 			{
-				summ = tr.balance().integral();
 				return true;
 			}
 		}
