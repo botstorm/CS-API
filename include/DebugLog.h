@@ -11,13 +11,13 @@
 
 inline void Log()
 {
-	std::cout << std::endl;
+	std::cerr << std::endl;
 }
 
 template <typename T, typename... Args>
 inline void Log(T t, Args&&... args)
 {
-	std::cout << t;
+	std::cerr << t;
 	Log(args...);
 }
 
@@ -38,7 +38,7 @@ inline void DebugLog(T t, Args&&... args)
 template <typename T, typename... Args>
 inline void DebugLog(T t, Args&&... args)
 {
-    std::cout << t;
+    std::cerr << t;
     Log(args...);
 }
 #endif

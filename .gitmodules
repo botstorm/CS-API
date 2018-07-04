@@ -1,3 +1,0 @@
-[submodule "thrift"]
-	path = thrift
-	url = https://gitlab.com/credits_bc/third_party/thrift.git
